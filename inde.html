@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#123b50"><link rel="manifest" href="manifest.webmanifest">
+<title>FinTrack</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f2f5f7;color:#172b36}
+header{padding:34px 20px 28px;color:white;background:linear-gradient(180deg,rgba(7,37,52,.25),rgba(7,37,52,.9)),url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200') center/cover}
+h1{font-size:34px;margin:30px 0 4px}header p{margin:0;font-size:14px;letter-spacing:.3px}
+main{max-width:700px;margin:auto;padding:16px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:white;border-radius:16px;padding:16px;box-shadow:0 3px 12px #123b5010}.wide{grid-column:1/-1}.muted{color:#6b7d86;font-size:13px}.amount{font-size:23px;font-weight:750;margin-top:7px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+button{border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:650;background:#146b78;color:white}button.secondary{background:#e1eef0;color:#15515b}
+h2{font-size:18px;margin:8px 0 12px}.item{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid #edf0f2}.item:last-child{border:0}
+form{display:grid;gap:10px}input,select{width:100%;padding:13px;border:1px solid #d6e0e4;border-radius:10px;font-size:16px;background:white}
+.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:18px}.modal>div{background:white;padding:20px;border-radius:18px;width:min(100%,420px)}
+.small{font-size:12px;color:#71818a} .negative{color:#c34d4d}.positive{color:#16805c}
+</style></head>
+<body>
+<header><h1>FinTrack</h1><p>Track Your Money, Build Your Future.</p></header>
+<main>
+<div class="cards">
+<div class="card wide"><div class="muted">Current Balance</div><div class="amount" id="balance">₩0</div></div>
+<div class="card"><div class="muted">Income</div><div class="amount positive" id="income">₩0</div></div>
+<div class="card"><div class="muted">Expenses</div><div class="amount negative" id="expense">₩0</div></div>
+</div>
+<div class="actions">
+<button onclick="openForm('Income')">＋ Add Income</button><button onclick="openForm('Expense')">－ Add Expense</button>
+<button class="secondary" onclick="openForm('Loan')">＋ Add Loan</button><button class="secondary" onclick="openForm('Savings')">＋ Add Savings</button>
+</div>
+<section class="card"><h2>Recent Transactions</h2><div id="list" class="muted">No transactions yet.</div><p class="small">Tap a transaction to delete it. Data is saved on this device.</p></section>
+</main>
+<div class="modal" id="modal"><div><h2 id="formTitle">Add transaction</h2>
+<form id="entry"><input id="desc" placeholder="Description" required><input id="amount" type="number" min="1" step="1" placeholder="Amount (₩)" required><select id="kind"><option>Income</option><option>Expense</option><option>Loan</option><option>Savings</option></select><button type="submit">Save</button><button type="button" class="secondary" onclick="closeForm()">Cancel</button></form>
+</div></div>
+<script>
+let entries=JSON.parse(localStorage.getItem('fintrack_entries')||'[]');
+const won=n=>'₩'+Number(n).toLocaleString('ko-KR');
+function render(){let inc=entries.filter(x=>x.kind==='Income').reduce((a,x)=>a+x.amount,0), exp=entries.filter(x=>x.kind==='Expense').reduce((a,x)=>a+x.amount,0), loan=entries.filter(x=>x.kind==='Loan').reduce((a,x)=>a+x.amount,0), sav=entries.filter(x=>x.kind==='Savings').reduce((a,x)=>a+x.amount,0);
+document.getElementById('income').textContent=won(inc);document.getElementById('expense').textContent=won(exp);document.getElementById('balance').textContent=won(inc-exp-loan-sav);
+let list=document.getElementById('list');list.innerHTML='';if(!entries.length){list.textContent='No transactions yet.';return}
+[...entries].reverse().forEach(x=>{let d=document.createElement('div');d.className='item';d.innerHTML='<span>'+escapeHtml(x.desc)+'<br><span class="small">'+x.kind+' · '+x.date+'</span></span><strong>'+won(x.amount)+'</strong>';d.onclick=()=>{if(confirm('Delete this transaction?')){entries=entries.filter(y=>y.id!==x.id);save()}};list.appendChild(d)})}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function save(){localStorage.setItem('fintrack_entries',JSON.stringify(entries));render()}
+function openForm(k){document.getElementById('kind').value=k;document.getElementById('modal').style.display='flex'}
+function closeForm(){document.getElementById('modal').style.display='none'}
+document.getElementById('entry').onsubmit=e=>{e.preventDefault();entries.push({id:Date.now(),desc:document.getElementById('desc').value,amount:Number(document.getElementById('amount').value),kind:document.getElementById('kind').value,date:new Date().toLocaleDateString()});save();e.target.reset();closeForm()};
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();
+</script></body></html>
